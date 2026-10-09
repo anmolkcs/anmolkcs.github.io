@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anmol Singh — Developer &amp; Explorer</title>
+
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="Anmol Singh — Developer &amp; Explorer">
+    <meta name="description" content="Developer in India building generative music systems, AI agent desktop tooling, and local-first apps. Creator of Continuo, Citropy and Goodnight Club.">
+    <meta name="author" content="Anmol Singh">
+    <meta name="theme-color" content="#030303">
+
+    <!-- Open Graph / Facebook / LinkedIn -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://anmolkcs.github.io/">
+    <meta property="og:title" content="Anmol Singh — Developer &amp; Explorer">
+    <meta name="og:description" content="Developer in India building generative music systems, AI agent desktop tooling, and local-first apps. Creator of Continuo, Citropy and Goodnight Club.">
+    <meta property="og:image" content="https://avatars.githubusercontent.com/u/80190725?v=4">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary">
+    <meta property="twitter:url" content="https://anmolkcs.github.io/">
+    <meta name="twitter:title" content="Anmol Singh — Developer &amp; Explorer">
+    <meta name="twitter:description" content="Developer in India building generative music systems, AI agent desktop tooling, and local-first apps. Creator of Continuo, Citropy and Goodnight Club.">
+    <meta property="twitter:image" content="https://avatars.githubusercontent.com/u/80190725?v=4">
+
+    <!-- JSON-LD Structured Data for Search Engines -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "Anmol Singh",
+      "url": "https://github.com/anmolkcs",
+      "jobTitle": "Software Developer",
+      "email": "mailto:anmollklfh@gmail.com",
+      "sameAs": [
+        "https://github.com/anmolkcs",
+        "https://anmolkcs.github.io/continuo/",
+        "https://goodnight-club.vercel.app"
+      ],
+      "knowsAbout": ["Generative Music", "Web Audio API", "AI Agents", "TypeScript", "React", "React Native", "Tauri", "Rust", "WebExtensions", "Local-First Software"]
+    }
+    </script>
+
+    <!-- Favicon (GitHub Avatar) -->
+    <link rel="icon" type="image/png" href="https://avatars.githubusercontent.com/u/80190725?v=4">
+
+    <!-- Editorial & Mono Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fragment+Mono:ital@0;1&family=Inter:wght@300;400;500;600&family=Oswald:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ========================================
+        00. DESIGN TOKENS
+        ========================================
+        */
+        :root {
+            --bg-void: #030303;
+            --bg-panel: #0a0a0a;
+            --fg-primary: #e5e5e5;
+            --fg-secondary: #737373;
+            --fg-dim: #404040;
+
+            --accent-red: #ff3b30; /* Generative / Creative */
+            --accent-physics: #0a84ff; /* Systems Blue */
+
+            --border-heavy: 2px solid #262626;
+            --border-light: 1px solid #1f1f1f;
+
+            --font-display: 'Oswald', sans-serif;
+            --font-body: 'Inter', sans-serif;
+            --font-mono: 'Fragment Mono', monospace;
+
+            --ease-snap: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* ========================================
+        01. GLOBAL RESET
+        ========================================
+        */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        ::selection { background: var(--fg-primary); color: var(--bg-void); }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Material / Gemini Custom Scrollbar (From Willow Code) */
+        @media (pointer: fine) {
+            ::-webkit-scrollbar,
+            ::-webkit-scrollbar-corner {
+                background: transparent;
+                height: 12px;
+                width: 12px;
+            }
+
+            ::-webkit-scrollbar-thumb {
+                background: content-box transparent;
+                border: 2px solid transparent;
+                border-radius: 9999px;
+                min-height: 48px;
+                min-width: 48px;
+            }
+
+            /* Show scrollbar when hovering over page */
+            :root:hover::-webkit-scrollbar-thumb,
+            body:hover::-webkit-scrollbar-thumb {
+                background: content-box rgb(51, 53, 55);
+            }
+
+            /* Brighten scrollbar when interacting directly with it */
+            ::-webkit-scrollbar-thumb:active,
+            ::-webkit-scrollbar-thumb:hover {
+                background: content-box rgb(68, 71, 70);
+            }
+
+            ::-webkit-scrollbar-button {
+                height: 0px;
+                width: 0px;
+            }
+        }
+
+        /* Fallback for non-webkit browsers */
+        @supports not (selector(::-webkit-scrollbar)) {
+            html, body {
+                scrollbar-color: transparent transparent;
+                scrollbar-width: thin;
+            }
+            html:hover, body:hover {
+                scrollbar-color: rgb(51, 53, 55) transparent;
+            }
+        }
+
+        body {
+            background-color: var(--bg-void);
+            color: var(--fg-primary);
+            font-family: var(--font-body);
+            overflow-x: hidden;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* ========================================
+        02. BACKGROUND ENGINE (STATIC JS CANVAS)
+        ========================================
+        */
+        #iso-canvas {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.25; /* Subtle texture */
+            pointer-events: none;
+        }
+
+        /* Scanline Overlay for "Screen" feel */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+            background-size: 100% 4px;
+            z-index: 900;
+            pointer-events: none;
+            opacity: 0.15; /* Softened for crystal-clear readability */
+        }
+
+        /* ========================================
+        03. CUSTOM CURSOR (DESKTOP FINE-POINTER ONLY)
+        ========================================
+        */
+        #cursor-crosshair {
+            display: none;
+        }
+
+        @media (pointer: fine) {
+            * { cursor: none; }
+            a, button, [role="button"] { cursor: none; }
+
+            #cursor-crosshair {
+                display: block;
+                position: fixed;
+                top: 0; left: 0;
+                width: 30px; height: 30px;
+                pointer-events: none;
+                z-index: 1000;
+                transform: translate(-50%, -50%);
+                mix-blend-mode: difference;
+                transition: transform 0.1s;
+            }
+
+            #cursor-crosshair::before, #cursor-crosshair::after {
+                content: '';
+                position: absolute;
+                background: white;
+                transition: all 0.2s var(--ease-snap);
+            }
+
+            /* Horizontal Line */
+            #cursor-crosshair::before {
+                top: 50%; left: 0; width: 100%; height: 1px;
+            }
+            /* Vertical Line */
+            #cursor-crosshair::after {
+                left: 50%; top: 0; height: 100%; width: 1px;
+            }
+
+            body.hovering #cursor-crosshair { transform: translate(-50%, -50%) rotate(45deg) scale(1.5); }
+        }
+
+        @media (pointer: coarse), (hover: none) {
+            * { cursor: auto !important; }
+            #cursor-crosshair { display: none !important; }
+        }
+
+        /* ========================================
+        04. LAYOUT GRID
+        ========================================
+        */
+        .layout-grid {
+            display: grid;
+            grid-template-columns: 80px 1fr 1fr 1fr 80px; /* Sidebar, Content x3, Sidebar */
+            min-height: 100vh;
+            border-left: var(--border-light);
+            border-right: var(--border-light);
+            max-width: 1600px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Sidebar decorations */
+        .rail {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 0;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--fg-dim);
+            letter-spacing: 0.2em;
+            text-orientation: mixed;
+            writing-mode: vertical-rl;
+            height: 100vh;
+            position: sticky;
+            top: 0;
+        }
+
+        .main-stage {
+            grid-column: 2 / 5;
+            border-left: var(--border-light);
+            border-right: var(--border-light);
+            padding-bottom: 10vh;
+        }
+
+        /* ========================================
+        05. TYPOGRAPHY & COMPONENTS
+        ========================================
+        */
+        header {
+            padding: 8rem 4rem 4rem 4rem;
+            border-bottom: var(--border-heavy);
+        }
+
+        .glitch-text {
+            font-family: var(--font-display);
+            font-size: clamp(4rem, 10vw, 11rem);
+            font-weight: 700;
+            line-height: 0.85;
+            text-transform: uppercase;
+            position: relative;
+            color: var(--fg-primary);
+        }
+
+        .glitch-text span { color: var(--fg-dim); transition: color 0.3s; }
+        .glitch-text:hover span { color: var(--accent-red); }
+
+        .subtitle-block {
+            margin-top: 3rem;
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .mono-tag {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--fg-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        .mono-tag::before { content: '// '; color: var(--fg-dim); }
+
+        .bio-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            max-width: 600px;
+            color: var(--fg-secondary);
+        }
+        .bio-text strong { color: var(--fg-primary); font-weight: 500; }
+
+        /* Reusable bordered tech chips */
+        .chip {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--fg-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border: var(--border-light);
+            padding: 4px 10px;
+            display: inline-block;
+        }
+        .chip.accent { color: var(--accent-physics); }
+
+        .tag-row {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        /* SECTIONS */
+        .section-header {
+            padding: 2rem 4rem;
+            border-bottom: var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(10,10,10,0.5);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .section-title {
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            text-transform: uppercase;
+        }
+
+        /* GRID ITEMS */
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .panel {
+            padding: 4rem;
+            border-bottom: var(--border-light);
+            border-right: var(--border-light);
+            transition: background 0.3s;
+            position: relative;
+        }
+        .panel:nth-child(even) { border-right: none; }
+        .panel:hover { background: #080808; }
+
+        .panel h3 {
+            font-family: var(--font-display);
+            font-size: 2.5rem;
+            margin: 1rem 0;
+            text-transform: uppercase;
+        }
+
+        .panel p {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--fg-secondary);
+            line-height: 1.7;
+            max-width: 400px;
+        }
+        .panel p code {
+            color: var(--accent-physics);
+            font-family: var(--font-mono);
+        }
+
+        .status-light {
+            width: 8px; height: 8px;
+            background: #333;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .panel:hover .status-light { background: var(--accent-physics); box-shadow: 0 0 10px var(--accent-physics); }
+        .panel.gen:hover .status-light { background: var(--accent-red); box-shadow: 0 0 10px var(--accent-red); }
+
+        /* FOOTER */
+        footer {
+            padding: 4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-top: var(--border-heavy);
+            gap: 2rem;
+        }
+        .big-contact {
+            font-family: var(--font-display);
+            font-size: clamp(1.6rem, 4.4vw, 4.6rem);
+            line-height: 1;
+            text-decoration: none;
+            color: var(--fg-dim);
+            transition: color 0.3s;
+            word-break: break-all;
+        }
+        .big-contact:hover { color: var(--fg-primary); }
+
+        /* RESPONSIVE */
+        @media (max-width: 1024px) {
+            .layout-grid { grid-template-columns: 1fr; border: none; }
+            .rail { display: none; }
+            .main-stage { grid-column: 1 / -1; border: none; }
+            .content-grid { grid-template-columns: 1fr; }
+            .panel { border-right: none; grid-column: span 1 !important; padding: 2.5rem 2rem; }
+            header { padding: 4rem 2rem; }
+            .subtitle-block { grid-template-columns: 1fr; gap: 1.5rem; }
+            .glitch-text { font-size: 15vw; }
+            .section-header { padding: 1.5rem 2rem; }
+            footer { padding: 2.5rem 2rem; flex-direction: column; align-items: flex-start; gap: 2rem; }
+            .big-contact { font-size: 7vw; }
+        }
+
+        /* TOUCH & ACCESSIBILITY POINTER FIX */
+        @media (pointer: coarse) {
+            * { cursor: auto !important; }
+            #cursor-crosshair { display: none !important; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            * { transition-duration: 0.01ms !important; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- 01. STATIC CANVAS (GENERATED TEXTURE) -->
+    <canvas id="iso-canvas"></canvas>
+
+    <!-- 02. SCANLINE OVERLAY -->
+    <div class="scanlines"></div>
+
+    <!-- 03. CURSOR -->
+    <div id="cursor-crosshair"></div>
+
+    <div class="layout-grid">
+
+        <!-- LEFT RAIL -->
+        <div class="rail" style="border-right: var(--border-light);">
+            <span id="field-switch-trigger" class="hover-trigger" style="cursor: pointer;" title="Background field">ANMOL SINGH</span>
+            <span style="margin-top: auto;">LOC: INDIA · UTC+05:30</span>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="main-stage">
+
+            <header>
+                <div class="mono-tag">STATUS: OPEN TO COLLABORATION · DEVELOPER &amp; EXPLORER · INDIA · UTC+05:30</div>
+                <h1 class="glitch-text hover-trigger">
+                    ANMOL <span>SINGH</span><br>
+                    EXPLO<span>RER</span>
+                </h1>
+
+                <div class="subtitle-block">
+                    <div>
+                        <div class="mono-tag">CURRENTLY</div>
+                        <div style="font-size: 0.9rem; line-height: 1.5;">Generative Music Systems<br>AI Agent Desktop Tooling<br>Local-First Apps<br>Browser Extensions</div>
+                    </div>
+                    <div class="bio-text">
+                        I'm a developer in India building systems that make music and code more explorable. My work spans
+                        <strong>Continuo</strong>, a real-time generative composer that derives each phrase backwards from its
+                        cadence using a functional harmony grammar, <strong>Citropy</strong>, a desktop app that runs every coding
+                        agent you already use side by side, and <strong>Goodnight Club</strong>, a night-owl journal with synthesised
+                        night radio. I care about <strong>procedural generation</strong>, <strong>local-first architecture</strong>,
+                        and <strong>browser internals</strong> — and I measure what I build: Continuo ships an evaluation harness
+                        scoring 94% real cadences against a 38% random baseline.
+
+                        <div style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+                            <a href="https://anmolkcs.github.io/continuo/" target="_blank" rel="noopener noreferrer" class="hover-trigger" style="text-decoration: none; color: var(--bg-void); background: var(--fg-primary); font-family: var(--font-mono); font-size: 0.8rem; font-weight: 600; padding: 0.7rem 1.4rem; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 0.5rem; transition: opacity 0.2s;">
+                                [ 🎵 OPEN CONTINUO ]
+                            </a>
+                            <a href="#projects" class="hover-trigger" style="text-decoration: none; color: var(--fg-secondary); border: var(--border-light); font-family: var(--font-mono); font-size: 0.8rem; padding: 0.7rem 1.4rem; letter-spacing: 0.05em; display: inline-flex; align-items: center; gap: 0.5rem; transition: border-color 0.2s, color 0.2s;">
+                                [ ⚡ EXPLORE PROJECTS ]
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- SECTION 01: PROJECTS -->
+            <div class="section-header" id="projects">
+                <span class="section-title">01 / Projects</span>
+                <span style="font-family: var(--font-mono); font-size: 0.7rem;">[BUILD]</span>
+            </div>
+
+            <div class="content-grid">
+                <!-- PANEL 1: Continuo -->
+                <a href="https://anmolkcs.github.io/continuo/" target="_blank" rel="noopener noreferrer" class="panel gen hover-trigger" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="mono-tag"><span class="status-light"></span>GENERATIVE MUSIC · WEB AUDIO · RESEARCH</div>
+                    <h3>Continuo</h3>
+                    <p>
+                        Music that composes itself, live, in your browser. Continuo plans a form, derives each phrase's
+                        harmony backward from its cadence with a Rohrmeier-style functional grammar, develops motifs over it,
+                        and writes the parts with counterpoint and voice-leading search — seconds before you hear them.
+                        Runs entirely client-side on the Web Audio API. Start it with <code>npm ci</code>.
+                    </p>
+                    <div class="tag-row">
+                        <span class="chip">TypeScript</span>
+                        <span class="chip">Web Audio API</span>
+                        <span class="chip">Counterpoint</span>
+                        <span class="chip">Ablation Eval</span>
+                        <span class="chip">MIT</span>
+                        <span class="chip accent">94% CADENCES</span>
+                    </div>
+                </a>
+
+                <!-- PANEL 2: Citropy — Sway Edition -->
+                <a href="https://github.com/anmolkcs/citropy-sway" target="_blank" rel="noopener noreferrer" class="panel hover-trigger" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="mono-tag"><span class="status-light"></span>DESKTOP APP · AI AGENTS · GIT</div>
+                    <h3>Citropy — Sway</h3>
+                    <p>
+                        Claude Code, Codex, OpenCode, Cursor and Pi in one desktop app. Each conversation picks its own
+                        agent, model and permission mode, and can switch agents without losing its history. Hunk-level diff
+                        review, AI-written commits in a separate session, SSH and Docker workspaces, plus per-conversation
+                        token and allowance tracking.
+                    </p>
+                    <div class="tag-row">
+                        <span class="chip">Electron</span>
+                        <span class="chip">TypeScript</span>
+                        <span class="chip">Node.js</span>
+                        <span class="chip">Git Plumbing</span>
+                        <span class="chip">SSH / Docker</span>
+                    </div>
+                </a>
+
+                <!-- PANEL 3: Goodnight Club -->
+                <a href="https://goodnight-club.vercel.app" target="_blank" rel="noopener noreferrer" class="panel hover-trigger" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="mono-tag"><span class="status-light"></span>NEXT.JS · POSTGRES · SYNTHESISED RADIO</div>
+                    <h3>Goodnight Club</h3>
+                    <p>
+                        A night-owl journal built on Next.js and Postgres, with a night-radio engine written in raw Web Audio
+                        that scores and plays generative tracks in the tab. Guestbook, RSS feed and rate-limited API routes,
+                        Drizzle-typed schema, self-hosted typography and a warm CRT palette that stays legible in the dark.
+                    </p>
+                    <div class="tag-row">
+                        <span class="chip">Next.js</span>
+                        <span class="chip">TypeScript</span>
+                        <span class="chip">Drizzle ORM</span>
+                        <span class="chip">Postgres</span>
+                        <span class="chip">Web Audio</span>
+                        <span class="chip accent">LIVE</span>
+                    </div>
+                </a>
+
+                <!-- PANEL 4: musico -->
+                <a href="https://github.com/anmolkcs/musico" target="_blank" rel="noopener noreferrer" class="panel hover-trigger" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="mono-tag"><span class="status-light"></span>ANDROID · REACT NATIVE · EXPO</div>
+                    <h3>musico</h3>
+                    <p>
+                        A music client for Android: an offline-first library on expo-sqlite with playlist and artist browsing,
+                        background playback via react-native-track-player, Spotify import, and a Zustand store wired to device
+                        media. Shipped as an Expo dev-client with CI building the Android artifact.
+                    </p>
+                    <div class="tag-row">
+                        <span class="chip">React Native</span>
+                        <span class="chip">Expo</span>
+                        <span class="chip">expo-sqlite</span>
+                        <span class="chip">Track Player</span>
+                        <span class="chip">Zustand</span>
+                        <iframe src="https://ghbtns.com/github-btn.html?user=anmolkcs&repo=musico&type=star&count=true" frameborder="0" scrolling="0" width="110" height="20" title="GitHub Star musico" style="vertical-align: middle;"></iframe>
+                    </div>
+                </a>
+
+                <!-- PANEL 5: RWE -->
+                <a href="https://github.com/anmolkcs/RWE" target="_blank" rel="noopener noreferrer" class="panel hover-trigger" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="mono-tag"><span class="status-light"></span>DESKTOP · LOCAL-FIRST · TAURI</div>
+                    <h3>RWE</h3>
+                    <p>
+                        Research With Ease — a local-first desktop workspace for deep-diving a topic fast. Split-pane markdown
+                        notes, mind maps with multiple themes, a canvas whiteboard, per-topic AI discussion, habit analytics
+                        and one-click export. Everything stays on disk: fully private, zero external data leakage.
+                    </p>
+                    <div class="tag-row">
+                        <span class="chip">Tauri</span>
+                        <span class="chip">React</span>
+                        <span class="chip">TypeScript</span>
+                        <span class="chip">shadcn/ui</span>
+                        <span class="chip">Local-First</span>
+                        <iframe src="https://ghbtns.com/github-btn.html?user=anmolkcs&repo=RWE&type=star&count=true" frameborder="0" scrolling="0" width="110" height="20" title="GitHub Star RWE" style="vertical-align: middle;"></iframe>
+                    </div>
+                </a>
+
+                <!-- PANEL 6: maco -->
+                <a href="https://github.com/anmolkcs/maco" target="_blank" rel="noopener noreferrer" class="panel hover-trigger" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="mono-tag"><span class="status-light"></span>WEBEXTENSION · IN-BROWSER ML</div>
+                    <h3>maco</h3>
+                    <p>
+                        Manga Colorize — a Firefox and Chrome extension that colourises manga pages on demand. Right-click any
+                        image or press <code>Alt+Shift+M</code>; inference runs off the main thread in offscreen documents, with
+                        cross-browser shipping from one source via a custom bundler and manifest regression tests.
+                    </p>
+                    <div class="tag-row">
+                        <span class="chip">WebExtensions</span>
+                        <span class="chip">Offscreen API</span>
+                        <span class="chip">Chrome MV3</span>
+                        <span class="chip">Firefox</span>
+                        <span class="chip">JavaScript</span>
+                    </div>
+                </a>
+            </div>
+
+            <!-- SECTION 02: CAPABILITIES & TECH STACK -->
+            <div class="section-header">
+                <span class="section-title">02 / Capabilities &amp; Stack</span>
+                <span style="font-family: var(--font-mono); font-size: 0.7rem;">[SYSTEMS]</span>
+            </div>
+
+            <div class="content-grid">
+                <!-- PANEL 1: Generative & Procedural Systems -->
+                <div class="panel gen hover-trigger">
+                    <div class="mono-tag"><span class="status-light"></span>01 // GENERATION</div>
+                    <h3>Generative Systems</h3>
+                    <p>
+                        Procedural composition from seeded RNGs: functional harmony grammars, cadence-driven phrase
+                        derivation, motif development and transformation, voice-leading search, and perceptual tension curves.
+                        Evaluation harnesses that measure the output instead of trusting it.
+                    </p>
+                    <div class="tag-row">
+                        <span class="chip">Web Audio API</span>
+                        <span class="chip">Music Theory</span>
+                        <span class="chip">Counterpoint</span>
+                        <span class="chip">Seeded RNG</span>
+                        <span class="chip">Ablation Testing</span>
+                    </div>
+                </div>
+
+                <!-- PANEL 2: AI Agents & Desktop Tooling -->
+                <div class="panel hover-trigger">
+                    <div class="mono-tag"><span class="status-light"></span>02 // AGENTS</div>
+                    <h3>AI Agents &amp; Tooling</h3>
+                    <p>
+                        Building desktop shells around coding-agent CLIs: per-conversation model and permission routing,
+                        agent switching with preserved history, hunk-level git review, and prompt pipelines. Comfortable
+                        driving agent runtimes as first-class processes.
+                    </p>
+                    <div class="tag-row">
+                        <span class="chip">Agent Harnesses</span>
+                        <span class="chip">Electron / Tauri</span>
+                        <span class="chip">Prompt Pipelines</span>
+                        <span class="chip">Git Plumbing</span>
+                        <span class="chip">Remote Workspaces</span>
+                    </div>
+                </div>
+
+                <!-- PANEL 3: App & Interface Engineering -->
+                <div class="panel hover-trigger">
+                    <div class="mono-tag"><span class="status-light"></span>03 // INTERFACE</div>
+                    <h3>Apps &amp; Interfaces</h3>
+                    <p>
+                        Shipping the same product across web, desktop and mobile: React and React Native screens, offline-first
+                        local databases, type-safe schemas, and brutalist/minimal layouts built with custom CSS. Accessibility
+                        and motion-reduction treated as defaults, not afterthoughts.
+                    </p>
+                    <div class="tag-row">
+                        <span class="chip">React 19</span>
+                        <span class="chip">Next.js</span>
+                        <span class="chip">React Native</span>
+                        <span class="chip">TypeScript</span>
+                        <span class="chip">Tailwind</span>
+                        <span class="chip">Canvas / SVG</span>
+                    </div>
+                </div>
+
+                <!-- PANEL 4: Platforms, Runtimes & Languages -->
+                <div class="panel hover-trigger">
+                    <div class="mono-tag"><span class="status-light"></span>04 // PLATFORMS</div>
+                    <h3>Runtimes &amp; Languages</h3>
+                    <p>
+                        Working across the stack and down to the runtime: Rust for systems work, Python for tooling, C for
+                        graphics, WebExtensions for the browser surface, and Postgres/SQLite for persistence. Git and
+                        GitHub Actions for everything else.
+                    </p>
+                    <div class="tag-row">
+                        <span class="chip">Rust</span>
+                        <span class="chip">Python</span>
+                        <span class="chip">C / C++</span>
+                        <span class="chip">SQLite</span>
+                        <span class="chip">Postgres</span>
+                        <span class="chip">GitHub Actions</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 03: SOCIALS -->
+            <div class="section-header">
+                <span class="section-title">03 / Socials</span>
+                <span style="font-family: var(--font-mono); font-size: 0.7rem;">[CONNECT]</span>
+            </div>
+
+            <div class="content-grid">
+                <!-- PANEL 1: Github -->
+                <a href="https://github.com/anmolkcs" target="_blank" rel="noopener noreferrer" class="panel hover-trigger" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="mono-tag"><span class="status-light"></span>CODE</div>
+                    <h3>Github</h3>
+                    <p>
+                        The public archive. Featuring <strong>Continuo</strong>, <strong>musico</strong>, <strong>RWE</strong> and
+                        MIT-licensed tooling — plus the commit history behind everything listed above.
+                    </p>
+                </a>
+
+                <!-- PANEL 2: Email -->
+                <a href="mailto:anmollklfh@gmail.com" class="panel hover-trigger" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="mono-tag"><span class="status-light"></span>CONTACT</div>
+                    <h3>Email</h3>
+                    <p>
+                        Direct line for collaboration, questions about any of the builds, or just to argue about voice leading.
+                        The fastest way to reach me — I read everything.
+                    </p>
+                    <div class="tag-row">
+                        <span class="chip accent">anmollklfh@gmail.com</span>
+                    </div>
+                </a>
+
+                <!-- PANEL 3: Listen -->
+                <a href="https://anmolkcs.github.io/continuo/" target="_blank" rel="noopener noreferrer" class="panel gen hover-trigger" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="mono-tag"><span class="status-light"></span>LISTEN</div>
+                    <h3>Continuo</h3>
+                    <p>
+                        Generative music, live in the tab. Describe a mood — <em>"calm, spacious, nocturnal, slowly
+                        evolving"</em> — and it composes toward it. Open it and leave it running.
+                    </p>
+                </a>
+
+                <!-- PANEL 4: Status -->
+                <div class="panel hover-trigger">
+                    <div class="mono-tag"><span class="status-light"></span>STATUS</div>
+                    <h3>Availability</h3>
+                    <p>
+                        Based in India (UTC+05:30). Open to remote collaboration, internships and global projects. On GitHub
+                        since <span class="calc-years">2021</span>, and still shipping.
+                    </p>
+                    <div class="tag-row">
+                        <span class="chip accent">● OPEN TO COLLABORATION</span>
+                    </div>
+                </div>
+            </div>
+
+            <footer>
+                <div>
+                    <div class="mono-tag">CONTACT &amp; BACKGROUND</div>
+                    <a href="mailto:anmollklfh@gmail.com" class="big-contact hover-trigger">anmollklfh@gmail.com</a>
+                    <div style="margin-top: 1.5rem; color: var(--fg-secondary); font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.8;">
+                        <div><strong style="color: var(--fg-primary);">BACKGROUND //</strong> Developer &amp; Explorer · Generative Music Systems · AI Agent Tooling · Local-First Apps</div>
+                        <div><strong style="color: var(--fg-primary);">LOCATION //</strong> India · UTC+05:30 · Open to Remote Collaboration &amp; Global Projects</div>
+                    </div>
+                </div>
+                <div style="text-align: right;">
+                    <div class="mono-tag">STATUS</div>
+                    <div style="font-family: var(--font-mono); font-size: 0.85rem; color: #30d158; letter-spacing: 0.1em;">● AVAILABLE</div>
+                    <div style="font-family: var(--font-display); font-size: 1.5rem; color: var(--fg-dim); margin-top: 0.8rem;">AS.</div>
+                    <div style="font-family: var(--font-mono); font-size: 0.65rem; color: var(--fg-dim); margin-top: 0.4rem; letter-spacing: 0.08em;">© 2026 ANMOL SINGH</div>
+                </div>
+            </footer>
+
+        </div>
+
+        <!-- RIGHT RAIL -->
+        <div class="rail" style="border-left: var(--border-light);">
+            <span>SCROLL</span>
+            <div style="height: 50px; width: 1px; background: var(--fg-dim); margin: 10px 0;"></div>
+            <span style="margin-top: auto;">V 1.0</span>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ------------------------------------------------------------------
+         * STATIC FIELD GENERATOR (THE "STATIC JS")
+         * ------------------------------------------------------------------
+         * This creates a complex, high-fidelity topographic map texture.
+         * It draws ONCE on load to create a high-res "background image" feel,
+         * rather than a distracting animation loop.
+         */
+        const canvas = document.getElementById('iso-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Simplex Noise (Simplified Implementation for standalone file)
+        // We use a pseudo-random gradient noise to create "terrain"
+        const perm = new Uint8Array(512);
+        const p = new Uint8Array(256);
+        for(let i=0; i<256; i++) p[i] = i;
+        // Shuffle
+        for(let i=255; i>0; i--) {
+            const r = Math.floor(Math.random() * (i+1));
+            [p[i], p[r]] = [p[r], p[i]];
+        }
+        for(let i=0; i<512; i++) perm[i] = p[i & 255];
+
+        function noise(x, y) {
+            const X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
+            x -= Math.floor(x); y -= Math.floor(y);
+            const u = fade(x), v = fade(y);
+            const A = perm[X]+Y, B = perm[X+1]+Y;
+            return lerp(v, lerp(u, grad(perm[A], x, y), grad(perm[B], x-1, y)),
+                           lerp(u, grad(perm[A+1], x, y-1), grad(perm[B+1], x-1, y-1)));
+        }
+        function fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+        function lerp(t, a, b) { return a + t * (b - a); }
+        function grad(hash, x, y) {
+            const h = hash & 15;
+            const u = h<8 ? x : y, v = h<4 ? y : h==12||h==14 ? x : 0;
+            return ((h&1) == 0 ? u : -u) + ((h&2) == 0 ? v : -v);
+        }
+
+        // Draw the static field
+        function drawStaticField() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.fillStyle = '#030303';
+            ctx.fillRect(0, 0, w, h);
+
+            ctx.strokeStyle = '#222'; // Very subtle grey
+            ctx.lineWidth = 1;
+
+            const step = 20; // Grid density
+
+            // Draw Isolines (Topography)
+            ctx.beginPath();
+            for (let y = 0; y < h; y += 5) { // Vertical density
+                for (let x = 0; x < w; x += 5) { // Horizontal resolution
+                    // Scale coordinates for noise
+                    const value = noise(x * 0.002, y * 0.002);
+
+                    // Threshold to draw line (creates contour effect)
+                    if (Math.abs(value) < 0.05) {
+                        ctx.rect(x, y, 1, 1);
+                    }
+                }
+            }
+            ctx.fillStyle = "rgba(40, 40, 40, 0.5)";
+            ctx.fill();
+
+            // Draw a subtle Grid Overlay
+            ctx.beginPath();
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.03)";
+            for(let x = 0; x < w; x+=100) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
+            for(let y = 0; y < h; y+=100) { ctx.moveTo(0, y); ctx.lineTo(w, y); }
+            ctx.stroke();
+        }
+
+        // Only redraw on resize (Semi-Static)
+        window.addEventListener('resize', drawStaticField);
+        drawStaticField();
+
+
+        /**
+         * ------------------------------------------------------------------
+         * INTERACTION LOGIC
+         * ------------------------------------------------------------------
+         */
+
+        // 1. Crosshair Cursor Logic (Only active on fine desktop pointer/mouse)
+        const cursor = document.getElementById('cursor-crosshair');
+        const hoverTriggers = document.querySelectorAll('.hover-trigger');
+
+        if (window.matchMedia('(pointer: fine)').matches && cursor) {
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.left = e.clientX + 'px';
+                cursor.style.top = e.clientY + 'px';
+            });
+
+            hoverTriggers.forEach(el => {
+                el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+                el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+            });
+        }
+
+        // 2. Parallax on Tilt (Subtle movement of canvas)
+        document.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth) - 0.5;
+            const y = (e.clientY / window.innerHeight) - 0.5;
+
+            // Very subtle shift
+            canvas.style.transform = `translate(${x * 20}px, ${y * 20}px)`;
+        });
+
+        // 3. Dynamic Tenure Calculation (GitHub account created: March 7, 2021)
+        (() => {
+            const startDate = new Date(2021, 2, 7); // Month is 0-indexed (2 = March)
+            const today = new Date();
+            let years = today.getFullYear() - startDate.getFullYear();
+            const monthDiff = today.getMonth() - startDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < startDate.getDate())) {
+                years--;
+            }
+            document.querySelectorAll('.calc-years').forEach(el => {
+                el.textContent = years;
+            });
+        })();
+
+        // 4. Background Field Switch — click the rail name or press 'f' to cycle texture gain
+        (() => {
+            const canvasEl = document.getElementById('iso-canvas');
+            const trigger = document.getElementById('field-switch-trigger');
+            if (!canvasEl) return;
+
+            const gains = [0.25, 0.65, 0.12];
+            let index = 0;
+            const cycle = () => {
+                index = (index + 1) % gains.length;
+                canvasEl.style.opacity = gains[index];
+            };
+
+            if (trigger) trigger.addEventListener('click', cycle);
+
+            document.addEventListener('keydown', (e) => {
+                const target = e.target;
+                if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+                    return;
+                }
+                if (e.key === 'f' || e.key === 'F') cycle();
+            });
+        })();
+
+    </script>
+</body>
+</html>
