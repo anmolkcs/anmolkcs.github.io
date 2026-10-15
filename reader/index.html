@@ -17,7 +17,7 @@
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .hidden{display:none!important}
-header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));background:var(--bg);border-bottom:1px solid var(--line);transition:transform .25s}
+header{position:fixed;left:0;right:0;top:0;z-index:5;display:flex;align-items:center;gap:8px;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));background:var(--bg);border-bottom:1px solid var(--line);transition:transform .25s}
 header.hide{transform:translateY(-100%)}
 header h1{flex:1;font-size:15px;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ib{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:18px}.ib:hover{background:var(--card)}
@@ -40,7 +40,7 @@ header h1{flex:1;font-size:15px;font-weight:600;margin:0;white-space:nowrap;over
 @media(hover:none){.del{opacity:.8}}
 .sec{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:26px 0 12px}
 /* reader */
-#reader{min-height:100vh}
+#reader{min-height:100vh;padding-top:58px}#lib{padding-top:80px!important}
 article{max-width:var(--w);margin:0 auto;padding:28px 22px 40px;font-family:var(--font);font-size:var(--fs);line-height:1.75;hyphens:auto;overflow-wrap:break-word}
 article h1,article h2,article h3{line-height:1.3;font-weight:600}article h1{font-size:1.6em;text-align:center;margin:.6em 0 1.2em}
 article p{margin:0 0 1em}article img{max-width:100%}article blockquote{margin:1em 0;padding-left:1em;border-left:3px solid var(--line);color:var(--mut)}
@@ -126,25 +126,29 @@ const saveP=()=>localStorage.setItem('mdr-prefs',JSON.stringify(prefs)),saveProg
 const natural=(a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'});
 const stripExt=n=>n.replace(/\.(md|markdown|txt)$/i,'');
 const firstHeading=t=>{const m=t.match(/^\s{0,3}#{1,3}\s+(.+)$/m);return m?m[1].trim():null};
+const cleanT=t=>t.replace(/[*_`#]+/g,'').replace(/\s+/g,' ').trim();
 function splitSingle(text){
-  // split at the most common heading level that occurs at least twice
-  for(const lv of [1,2,3]){
-    const re=new RegExp('^'+'#'.repeat(lv)+'\\s+(.+)$','gm');const hits=[...text.matchAll(re)];
+  text=text.replace(/\r\n?/g,'\n');
+  // split at the highest heading level that occurs at least twice; fall back to "Chapter N" lines
+  const pats=[1,2,3,4].map(lv=>new RegExp('^ {0,3}'+'#'.repeat(lv)+'[ \\t]+(.+?)[ \\t#]*$','gm'));
+  pats.push(/^[ \t]*(?:\*\*|__)?((?:chapter|ch\.?|第)[ \t]*[\dIVXLC一二三四五六七八九十百千]+.*?)(?:\*\*|__)?[ \t]*$/gim);
+  for(const re of pats){
+    const hits=[...text.matchAll(re)];
     if(hits.length>=2){
       const ch=[];const pre=text.slice(0,hits[0].index).trim();
       if(pre.length>200)ch.push({title:'Front matter',text:pre});
-      hits.forEach((h,i)=>ch.push({title:h[1].trim(),text:text.slice(h.index,i+1<hits.length?hits[i+1].index:text.length)}));
+      hits.forEach((h,i)=>ch.push({title:cleanT(h[1]),text:text.slice(h.index,i+1<hits.length?hits[i+1].index:text.length)}));
       return ch;
     }
   }
-  return [{title:firstHeading(text)||'Chapter 1',text}];
+  return [{title:cleanT(firstHeading(text)||'Chapter 1'),text}];
 }
 function buildBook(files,name){ // files: [{name,text}]
   files=files.filter(f=>/\.(md|markdown|txt)$/i.test(f.name)&&!/^readme\.md$/i.test(f.name.split('/').pop())||files.length===1);
   files.sort((a,b)=>natural(a.name,b.name));
   let chapters;
   if(files.length===1)chapters=splitSingle(files[0].text);
-  else chapters=files.map(f=>({title:firstHeading(f.text)||stripExt(f.name.split('/').pop()),text:f.text}));
+  else chapters=files.flatMap(f=>{const c=splitSingle(f.text);if(c.length===1&&!firstHeading(f.text))c[0].title=stripExt(f.name.split('/').pop());return c});
   name=name||stripExt(files[0].name.split('/').pop());
   return {id:'b'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),title:name,chapters,added:Date.now()};
 }
@@ -157,8 +161,6 @@ async function importFiles(list,asFolder){
   if(asFolder){ // group by top folder
     const g={};files.forEach(f=>{const parts=f.name.split('/');const k=parts.length>1?parts[parts.length-2]:'Book';(g[k]=g[k]||[]).push(f)});
     books=Object.entries(g).map(([k,fs])=>buildBook(fs,k));
-  } else if(files.length>1 && confirm(`Combine these ${files.length} files into one book?\n\nOK = one book (each file a chapter)\nCancel = separate books`)){
-    books=[buildBook(files,prompt('Book title?',stripExt(files[0].name).replace(/[\s_-]*\d+$/,''))||'Untitled')];
   } else books=files.map(f=>buildBook([f]));
   for(const b of books)await putBook(b);
   renderLib();
@@ -206,11 +208,13 @@ async function fromUrl(){
 
 // ---------- reader ----------
 let current=null;
-async function openBook(id){current=await getBook(id);if(current)showReader()}
+async function openBook(id){current=await getBook(id);if(!current)return;
+  const fl=current.chapters.flatMap(c=>splitSingle(c.text));if(fl.length!==current.chapters.length){current.chapters=fl;putBook(current)}
+  showReader()}
 function showReader(){
   $('#lib').classList.add('hidden');$('#reader').classList.remove('hidden');
   ['#bBack','#bToc','#prog','#foot'].forEach(s=>$(s).classList.remove('hidden'));
-  $('#tocTitle').textContent=current.title;
+  $('#tocTitle').textContent=current.title+' · '+current.chapters.length+' chapters';
   const p=progress[current.id]||{ch:0,y:0};renderTOC();goto(Math.min(p.ch,current.chapters.length-1),p.y);
   history.replaceState(null,'','#'+encodeURIComponent(current.id));
 }
@@ -239,7 +243,7 @@ function onScroll(){
   $('#prog').style.width=((chIdx+y)/current.chapters.length*100)+'%';
   $('#foot').textContent=`${chIdx+1} / ${current.chapters.length} · ${Math.round(y*100)}%`;
   progress[current.id]={ch:chIdx,y,t:Date.now()};saveProg();
-  $('#hdr').classList.toggle('hide',scrollY>lastY&&scrollY>80);lastY=scrollY;
+  if(scrollY<=4)$('#hdr').classList.remove('hide');else if(Math.abs(scrollY-lastY)>2&&$('#set').classList.contains('hidden'))$('#hdr').classList.add('hide');lastY=scrollY;
 }
 addEventListener('scroll',()=>requestAnimationFrame(onScroll),{passive:true});
 
@@ -288,6 +292,7 @@ let tx0=null;addEventListener('touchstart',e=>{tx0=[e.touches[0].clientX,e.touch
 addEventListener('touchend',e=>{if(!current||!tx0)return;const dx=e.changedTouches[0].clientX-tx0[0],dy=e.changedTouches[0].clientY-tx0[1];
   if(Math.abs(dx)>90&&Math.abs(dy)<40){dx<0?$('#bNext').click():$('#bPrev').click()}tx0=null},{passive:true});
 
+$('#reader').addEventListener('click',e=>{if(e.target.closest('a,button,input')||getSelection().toString())return;$('#hdr').classList.toggle('hide')});
 applyPrefs();renderLib();loadRepo().then(()=>{const h=decodeURIComponent(location.hash.slice(1));if(h){h.startsWith('repo:')?(repoBooks.find(b=>b.id===h)&&openRepoBook(repoBooks.find(b=>b.id===h))):openBook(h)}});
 </script>
 </body>
